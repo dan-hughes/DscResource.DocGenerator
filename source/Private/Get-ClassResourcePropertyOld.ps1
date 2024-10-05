@@ -19,7 +19,7 @@
 
         Returns all DSC class resource properties.
 #>
-function Get-ClassResourceProperty
+function Get-ClassResourcePropertyOld
 {
     [CmdletBinding()]
     [OutputType([System.Collections.Hashtable[]])]
@@ -30,19 +30,19 @@ function Get-ClassResourceProperty
         $SourcePath,
 
         [Parameter(Mandatory = $true)]
-        [System.String[]]
-        $ClassName,
+        [System.String]
+        $BuiltModuleScriptFilePath,
 
         [Parameter(Mandatory = $true)]
-        [System.Reflection.PropertyInfo[]]
-        $ClassProperties
+        [System.String[]]
+        $ClassName
     )
 
     $resourceProperty = [System.Collections.Hashtable[]] @()
 
     foreach ($currentClassName in $ClassName)
     {
-        #$dscResourceAst = Get-ClassAst -ClassName $currentClassName -ScriptFile $BuiltModuleScriptFilePath
+        $dscResourceAst = Get-ClassAst -ClassName $currentClassName -ScriptFile $BuiltModuleScriptFilePath
 
         $classExists = $false
         $sourceFilePath = ''
@@ -73,16 +73,12 @@ function Get-ClassResourceProperty
 
         $dscResourceCommentBasedHelp = Get-CommentBasedHelp -Path $sourceFilePath
 
-        $properties = $ClassProperties | Where-Object {$_.ReflectedType -eq $currentClassName}
-
-        <#
         $astFilter = {
             $args[0] -is [System.Management.Automation.Language.PropertyMemberAst] `
                 -and $args[0].Attributes.TypeName.Name -eq 'DscProperty'
         }
 
         $propertyMemberAsts = $dscResourceAst.FindAll($astFilter, $true)
-        #>
 
         <#
             Looping through each resource property to build the resulting
@@ -98,13 +94,13 @@ function Get-ClassResourceProperty
                 ValueMap         = @(<System.String> | ...)
             }
         #>
-        foreach ($propertyMember in $properties)
+        foreach ($propertyMemberAst in $propertyMemberAsts)
         {
-            Write-Verbose -Message ($script:localizedData.FoundClassResourcePropertyMessage -f $propertyMember.Name, $currentClassName)
+            Write-Verbose -Message ($script:localizedData.FoundClassResourcePropertyMessage -f $propertyMemberAst.Name, $dscResourceAst.Name)
 
             $propertyAttribute = @{
-                Name             = $propertyMember.Name
-                DataType         = $propertyMember.PropertyType.FullName
+                Name             = $propertyMemberAst.Name
+                DataType         = $propertyMemberAst.PropertyType.TypeName.FullName
 
                 # Always set to null, correct type name is set in DataType.
                 EmbeddedInstance = $null
@@ -113,27 +109,24 @@ function Get-ClassResourceProperty
                 IsArray          = $false
             }
 
-            #$propertyAttribute['State'] = Get-ClassResourcePropertyState -Ast $propertyMemberAst
-            $propertyAttribute.State = Get-ClassResourcePropertyState2 -PropertyInfo $propertyMember
+            $propertyAttribute['State'] = Get-ClassResourcePropertyState -Ast $propertyMemberAst
 
-            # $astFilter = {
-            #     $args[0] -is [System.Management.Automation.Language.AttributeAst] `
-            #         -and $args[0].TypeName.Name -eq 'ValidateSet'
-            # }
+            $astFilter = {
+                $args[0] -is [System.Management.Automation.Language.AttributeAst] `
+                    -and $args[0].TypeName.Name -eq 'ValidateSet'
+            }
 
-            #$propertyAttributeAsts = $propertyMemberAst.FindAll($astFilter, $true)
-
-            $propertyAttributeAsts = ($propertyMember.CustomAttributes | Where-Object {$_.AttributeType.Name -eq 'ValidateSetAttribute'}).ConstructorArguments.Value
+            $propertyAttributeAsts = $propertyMemberAst.FindAll($astFilter, $true)
 
             if ($propertyAttributeAsts)
             {
-                $propertyAttribute.ValueMap = $propertyAttributeAsts.Value
+                $propertyAttribute['ValueMap'] = $propertyAttributeAsts.PositionalArguments.Value
             }
 
             if ($dscResourceCommentBasedHelp -and $dscResourceCommentBasedHelp.Parameters.Count -gt 0)
             {
                 # The key name must be upper-case for it to match the right item in the list of parameters.
-                $propertyDescription = $dscResourceCommentBasedHelp.Parameters[$propertyMember.Name.ToUpper()]
+                $propertyDescription = $dscResourceCommentBasedHelp.Parameters[$propertyMemberAst.Name.ToUpper()]
 
                 if ($propertyDescription)
                 {
@@ -152,7 +145,7 @@ function Get-ClassResourceProperty
                 $propertyDescription = ''
             }
 
-            $propertyAttribute.Description = $propertyDescription
+            $propertyAttribute['Description'] = $propertyDescription
 
             $resourceProperty += $propertyAttribute
         }

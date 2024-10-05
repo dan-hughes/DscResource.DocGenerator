@@ -96,6 +96,11 @@ function New-DscClassResourceWikiPage
 
             Write-Verbose -Message ($script:localizedData.FoundClassBasedMessage -f $dscResourceAsts.Count, $builtModuleScriptFile.FullName)
 
+            # Import module via 'using module'
+            $scriptBody = ('using module {0}' -f $builtModuleScriptFile.FullName)
+            $script = [scriptblock]::Create($scriptBody)
+            . $script
+
             # Looping through each class-based resource.
             foreach ($dscResourceAst in $dscResourceAsts)
             {
@@ -125,17 +130,15 @@ function New-DscClassResourceWikiPage
 
                 $sourceFilePath = Join-Path -Path $SourcePath -ChildPath ('Classes/*{0}.ps1' -f $dscResourceAst.Name)
 
-                $className = @()
+                $scriptBody = ('[{0}]::new(); [{0}].GetProperties()' -f $dscResourceAst.Name)
+                $cl = [scriptblock]::Create($scriptBody)
+                [System.Reflection.PropertyInfo[]] $classProperties = $cl.InvokeReturnAsIs()
 
-                if ($dscResourceAst.BaseTypes.Count -gt 0)
-                {
-                    $className += @($dscResourceAst.BaseTypes.TypeName.Name)
-                }
-
-                $className += $dscResourceAst.Name
+                $className = ($classProperties | Select-Object -Unique DeclaringType).DeclaringType
 
                 # Returns the properties for class and any existing parent class(es).
-                $resourceProperty = Get-ClassResourceProperty -ClassName $className -SourcePath $SourcePath -BuiltModuleScriptFilePath $builtModuleScriptFile.FullName
+                #$resourceProperty = Get-ClassResourceProperty -ClassName $className -SourcePath $SourcePath -BuiltModuleScriptFilePath $builtModuleScriptFile.FullName
+                $resourceProperty = Get-ClassResourceProperty -ClassName $className -SourcePath $SourcePath -ClassProperties $classProperties
 
                 $propertyContent = Get-DscResourceSchemaPropertyContent -Property $resourceProperty -UseMarkdown
 
