@@ -32,7 +32,7 @@
 
         Returns the property state for the property 'KeyName'.
 #>
-function Get-ClassResourcePropertyState
+function Get-ClassResourcePropertyState2
 {
     [CmdletBinding()]
     [OutputType([System.String])]
