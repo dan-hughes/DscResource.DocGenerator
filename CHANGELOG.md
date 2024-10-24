@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Task `Generate_Markdown_For_DSC_Resources`
   - Outputs a warning message if the old configuration key is used in the
     build configuration but keeps using the old configuration key.
+- `build.yaml`
+  - Changed key `Generate_Wiki_Content` to `Generate_Markdown_For_DSC_Resources`.
 
 ### Fixed
 

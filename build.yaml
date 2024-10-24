@@ -138,7 +138,7 @@ DscResource.DocGenerator:
       - '\*(.+?)\*' # Match Italic (asterisk)
   Publish_GitHub_Wiki_Content:
     Debug: true
-  Generate_Wiki_Content:
+  Generate_Markdown_For_DSC_Resources:
     MofResourceMetadata:
       Type: MofResource
       Category: Resources
@@ -149,5 +149,5 @@ DscResource.DocGenerator:
       Type: CompositeResource
       Category: Resources
   Generate_Wiki_Sidebar:
-     Debug: false
-     AlwaysOverwrite: true
+    Debug: false
+    AlwaysOverwrite: true
