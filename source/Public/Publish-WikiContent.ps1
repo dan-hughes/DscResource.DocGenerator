@@ -168,7 +168,7 @@ function Publish-WikiContent
 
         $gitAddResult = Invoke-Git -WorkingDirectory $tempPath -Arguments @( 'add', '*' ) -PassThru
 
-        if ($gitAddResult.ExitCode -ne 0)
+        if ($gitAddResult.ExitCode -eq 1)
         {
             Write-Verbose -Message $script:localizedData.GitAddFailedMessage
         }
